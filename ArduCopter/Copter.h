@@ -192,7 +192,7 @@ private:
     Compass compass;
     AP_InertialSensor ins;
 
-    RangeFinder rangefinder {serial_manager};
+    RangeFinder rangefinder {serial_manager, ROTATION_PITCH_270};
     struct {
         bool enabled:1;
         bool alt_healthy:1; // true if we can trust the altitude from the rangefinder
@@ -331,6 +331,7 @@ private:
     struct {
         uint8_t baro        : 1;    // true if baro is healthy
         uint8_t compass     : 1;    // true if compass is healthy
+        uint8_t primary_gps;        // primary gps index
     } sensor_health;
 
     // Motor Output
@@ -401,9 +402,6 @@ private:
 
     // Stores initial bearing when armed - initial simple bearing is modified in super simple mode so not suitable
     int32_t initial_armed_bearing;
-
-    // Throttle variables
-    int16_t desired_climb_rate;          // pilot desired climb rate - for logging purposes only
 
     // Loiter control
     uint16_t loiter_time_max;                // How long we should stay in Loiter Mode for mission scripting (time in seconds)
@@ -822,6 +820,7 @@ private:
     void autotune_updating_p_up(float &tune_p, float tune_p_max, float tune_p_step_ratio, float target, float measurement_max);
     void autotune_updating_p_up_d_down(float &tune_d, float tune_d_min, float tune_d_step_ratio, float &tune_p, float tune_p_min, float tune_p_max, float tune_p_step_ratio, float target, float measurement_min, float measurement_max);
     void autotune_twitching_measure_acceleration(float &rate_of_change, float rate_measurement, float &rate_measurement_max);
+    void autotune_get_poshold_attitude(float &roll_cd, float &pitch_cd, float &yaw_cd);
     void avoidance_adsb_update(void);
 #if ADVANCED_FAILSAFE == ENABLED
     void afs_fs_check(void);

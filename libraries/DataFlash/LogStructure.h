@@ -512,7 +512,9 @@ struct PACKED log_RFND {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint16_t dist1;
+    uint8_t orient1;
     uint16_t dist2;
+    uint8_t orient2;
 };
 
 /*
@@ -784,10 +786,14 @@ Format characters in the format string for binary log messages
       "GPS",  "QBIHBcLLefffB", "TimeUS,Status,GMS,GWk,NSats,HDop,Lat,Lng,Alt,Spd,GCrs,VZ,U" }, \
     { LOG_GPS2_MSG, sizeof(log_GPS), \
       "GPS2", "QBIHBcLLefffB", "TimeUS,Status,GMS,GWk,NSats,HDop,Lat,Lng,Alt,Spd,GCrs,VZ,U" }, \
+    { LOG_GPSB_MSG, sizeof(log_GPS), \
+      "GPSB", "QBIHBcLLefffB", "TimeUS,Status,GMS,GWk,NSats,HDop,Lat,Lng,Alt,Spd,GCrs,VZ,U" }, \
     { LOG_GPA_MSG,  sizeof(log_GPA), \
       "GPA",  "QCCCCBI", "TimeUS,VDop,HAcc,VAcc,SAcc,VV,SMS" }, \
     { LOG_GPA2_MSG, sizeof(log_GPA), \
       "GPA2", "QCCCCBI", "TimeUS,VDop,HAcc,VAcc,SAcc,VV,SMS" }, \
+    { LOG_GPAB_MSG, sizeof(log_GPA), \
+      "GPAB", "QCCCCBI", "TimeUS,VDop,HAcc,VAcc,SAcc,VV,SMS" }, \
     { LOG_IMU_MSG, sizeof(log_IMU), \
       "IMU",  "QffffffIIfBB",     "TimeUS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,ErrG,ErrA,Temp,GyHlt,AcHlt" }, \
     { LOG_MESSAGE_MSG, sizeof(log_Message), \
@@ -823,7 +829,7 @@ Format characters in the format string for binary log messages
     { LOG_MODE_MSG, sizeof(log_Mode), \
       "MODE", "QMBB",         "TimeUS,Mode,ModeNum,Rsn" }, \
     { LOG_RFND_MSG, sizeof(log_RFND), \
-      "RFND", "QCC",         "TimeUS,Dist1,Dist2" }, \
+      "RFND", "QCBCB", "TimeUS,Dist1,Orient1,Dist2,Orient2" }, \
     { LOG_DF_MAV_STATS, sizeof(log_DF_MAV_Stats), \
       "DMS", "IIIIIBBBBBBBBBB",         "TimeMS,N,Dp,RT,RS,Er,Fa,Fmn,Fmx,Pa,Pmn,Pmx,Sa,Smn,Smx" }
 
@@ -939,6 +945,8 @@ Format characters in the format string for binary log messages
       "PIDA", "Qffffff",  "TimeUS,Des,P,I,D,FF,AFF" }, \
     { LOG_PIDS_MSG, sizeof(log_PID), \
       "PIDS", "Qffffff",  "TimeUS,Des,P,I,D,FF,AFF" }, \
+    { LOG_PIDL_MSG, sizeof(log_PID), \
+      "PIDL", "Qffffff",  "TimeUS,Des,P,I,D,FF,AFF" }, \
     { LOG_BAR2_MSG, sizeof(log_BARO), \
       "BAR2",  "QffcfIf", "TimeUS,Alt,Press,Temp,CRt,SMS,Offset" }, \
     { LOG_BAR3_MSG, sizeof(log_BARO), \
@@ -986,6 +994,7 @@ enum LogMessages {
     LOG_PARAMETER_MSG,
     LOG_GPS_MSG,
     LOG_GPS2_MSG,
+    LOG_GPSB_MSG,
     LOG_IMU_MSG,
     LOG_MESSAGE_MSG,
     LOG_RCIN_MSG,
@@ -1039,6 +1048,7 @@ enum LogMessages {
     LOG_PIDY_MSG,
     LOG_PIDA_MSG,
     LOG_PIDS_MSG,
+    LOG_PIDL_MSG,
     LOG_VIBE_MSG,
     LOG_IMUDT_MSG,
     LOG_IMUDT2_MSG,
@@ -1047,6 +1057,7 @@ enum LogMessages {
     LOG_RPM_MSG,
     LOG_GPA_MSG,
     LOG_GPA2_MSG,
+    LOG_GPAB_MSG,
     LOG_RFND_MSG,
     LOG_BAR3_MSG,
     LOG_NKF1_MSG,

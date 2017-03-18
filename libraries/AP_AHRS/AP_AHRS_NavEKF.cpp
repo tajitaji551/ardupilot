@@ -20,6 +20,7 @@
  */
 #include <AP_HAL/AP_HAL.h>
 #include "AP_AHRS.h"
+#include "AP_AHRS_View.h"
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Module/AP_Module.h>
@@ -98,6 +99,11 @@ void AP_AHRS_NavEKF::update(void)
     if (hal.opticalflow) {
         const Vector3f &exported_gyro_bias = get_gyro_drift();
         hal.opticalflow->push_gyro_bias(exported_gyro_bias.x, exported_gyro_bias.y);
+    }
+
+    if (_view != nullptr) {
+        // update optional alternative attitude view
+        _view->update();
     }
 }
 
@@ -1465,7 +1471,7 @@ bool AP_AHRS_NavEKF::have_ekf_logging(void) const
     return false;
 }
 
-// get earth-frame accel vector for primary IMU
+// get the index of the current primary IMU
 uint8_t AP_AHRS_NavEKF::get_primary_IMU_index() const
 {
     int8_t imu = -1;

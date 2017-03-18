@@ -124,12 +124,22 @@ void Plane::init_ardupilot()
     serial_manager.init();
     gcs().chan(0).setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 0);
 
+
+    // specify callback function for CLI menu system
+#if CLI_ENABLED == ENABLED
+    if (g.cli_enabled) {
+        gcs().set_run_cli_func(FUNCTOR_BIND_MEMBER(&Plane::run_cli, void, AP_HAL::UARTDriver *));
+    }
+#endif
+
     // Register mavlink_delay_cb, which will run anytime you have
     // more than 5ms remaining in your call to hal.scheduler->delay
     hal.scheduler->register_delay_callback(mavlink_delay_cb_static, 5);
 
     // setup any board specific drivers
     BoardConfig.init();
+
+    relay.init();
 
     // initialise notify system
     notify.init(false);
@@ -208,8 +218,6 @@ void Plane::init_ardupilot()
 
     init_rc_in();               // sets up rc channels from radio
 
-    relay.init();
-
 #if MOUNT == ENABLED
     // initialise camera mount
     camera_mount.init(&DataFlash, serial_manager);
@@ -267,11 +275,11 @@ void Plane::startup_ground(void)
 {
     set_mode(INITIALISING, MODE_REASON_UNKNOWN);
 
-    gcs_send_text(MAV_SEVERITY_INFO,"<startup_ground> Ground start");
-
 #if (GROUND_START_DELAY > 0)
-    gcs_send_text(MAV_SEVERITY_NOTICE,"<startup_ground> With delay");
+    gcs_send_text(MAV_SEVERITY_NOTICE,"Ground start with delay");
     delay(GROUND_START_DELAY * 1000);
+#else
+    gcs_send_text(MAV_SEVERITY_INFO,"Ground start");
 #endif
 
     //INS ground start
@@ -304,7 +312,7 @@ void Plane::startup_ground(void)
     ins.set_raw_logging(should_log(MASK_LOG_IMU_RAW));
     ins.set_dataflash(&DataFlash);
 
-    gcs_send_text(MAV_SEVERITY_INFO,"Ready to fly");
+    gcs_send_text(MAV_SEVERITY_INFO,"Ground start complete");
 }
 
 enum FlightMode Plane::get_previous_mode() {

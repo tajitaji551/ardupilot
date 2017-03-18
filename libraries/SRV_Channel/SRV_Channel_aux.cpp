@@ -109,6 +109,8 @@ void SRV_Channel::aux_servo_function_setup(void)
         set_angle(4500);
         break;
     case k_throttle:
+    case k_throttleLeft:
+    case k_throttleRight:
         // fixed wing throttle
         set_range(100);
         break;
@@ -338,6 +340,7 @@ SRV_Channels::move_servo(SRV_Channel::Aux_servo_function_t function,
         return;
     }
     float v = float(value - angle_min) / float(angle_max - angle_min);
+    v = constrain_float(v, 0.0f, 1.0f);
     for (uint8_t i = 0; i < NUM_SERVO_CHANNELS; i++) {
         SRV_Channel &ch = channels[i];
         if (ch.function.get() == function) {
@@ -556,7 +559,7 @@ void SRV_Channels::limit_slew_rate(SRV_Channel::Aux_servo_function_t function, f
         SRV_Channel &ch = channels[i];
         if (ch.function == function) {
             ch.calc_pwm(functions[function].output_scaled);
-            uint16_t last_pwm = hal.rcout->read(ch.ch_num);
+            uint16_t last_pwm = hal.rcout->read_last_sent(ch.ch_num);
             if (last_pwm == ch.output_pwm) {
                 continue;
             }

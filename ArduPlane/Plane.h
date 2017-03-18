@@ -200,7 +200,7 @@ private:
 
     AP_InertialSensor ins;
 
-    RangeFinder rangefinder {serial_manager};
+    RangeFinder rangefinder {serial_manager, ROTATION_PITCH_270};
 
     AP_Vehicle::FixedWing::Rangefinder_State rangefinder_state;
 
@@ -641,8 +641,19 @@ private:
         // Direction for loiter. 1 for clockwise, -1 for counter-clockwise
         int8_t direction;
 
+        // when loitering and an altitude is involved, this flag is true when it has been reached at least once
+        bool reached_target_alt;
+
+        // check for scenarios where updrafts can keep you from loitering down indefinitely.
+        bool unable_to_acheive_target_alt;
+
         // start time of the loiter.  Milliseconds.
         uint32_t start_time_ms;
+
+        // altitude at start of loiter loop lap. Used to detect delta alt of each lap.
+        // only valid when sum_cd > 36000
+        int32_t start_lap_alt_cm;
+        int32_t next_sum_lap_cd;
 
         // The amount of time we should stay in a loiter for the Loiter Time command.  Milliseconds.
         uint32_t time_max_ms;
@@ -1009,6 +1020,7 @@ private:
     void servo_output_mixers(void);
     void servos_output(void);
     void servos_auto_trim(void);
+    void servos_twin_engine_mix();
     void throttle_watt_limiter(int8_t &min_throttle, int8_t &max_throttle);
     bool allow_reverse_thrust(void);
     void update_aux();

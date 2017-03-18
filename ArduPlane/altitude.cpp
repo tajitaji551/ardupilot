@@ -25,6 +25,8 @@
  */
 void Plane::adjust_altitude_target()
 {
+    Location target_location;
+
     if (control_mode == FLY_BY_WIRE_B ||
         control_mode == CRUISE) {
         return;
@@ -36,6 +38,8 @@ void Plane::adjust_altitude_target()
     } else if (landing.is_on_approach()) {
         landing.setup_landing_glide_slope(prev_WP_loc, next_WP_loc, current_loc, target_altitude.offset_cm);
         landing.adjust_landing_slope_for_rangefinder_bump(rangefinder_state, prev_WP_loc, next_WP_loc, current_loc, auto_state.wp_distance, target_altitude.offset_cm);
+    } else if (landing.get_target_altitude_location(target_location)) {
+       set_target_altitude_location(target_location);
     } else if (reached_loiter_target()) {
         // once we reach a loiter target then lock to the final
         // altitude target
@@ -568,9 +572,9 @@ float Plane::rangefinder_correction(void)
  */
 void Plane::rangefinder_height_update(void)
 {
-    float distance = rangefinder.distance_cm()*0.01f;
+    float distance = rangefinder.distance_cm_orient(ROTATION_PITCH_270)*0.01f;
     
-    if ((rangefinder.status() == RangeFinder::RangeFinder_Good) && home_is_set != HOME_UNSET) {
+    if ((rangefinder.status_orient(ROTATION_PITCH_270) == RangeFinder::RangeFinder_Good) && home_is_set != HOME_UNSET) {
         if (!rangefinder_state.have_initial_reading) {
             rangefinder_state.have_initial_reading = true;
             rangefinder_state.initial_range = distance;
@@ -586,10 +590,10 @@ void Plane::rangefinder_height_update(void)
         // to misconfiguration or a faulty sensor
         if (rangefinder_state.in_range_count < 10) {
             if (!is_equal(distance, rangefinder_state.last_distance) &&
-                fabsf(rangefinder_state.initial_range - distance) > 0.05f * rangefinder.max_distance_cm()*0.01f) {
+                fabsf(rangefinder_state.initial_range - distance) > 0.05f * rangefinder.max_distance_cm_orient(ROTATION_PITCH_270)*0.01f) {
                 rangefinder_state.in_range_count++;
             }
-            if (fabsf(rangefinder_state.last_distance - distance) > rangefinder.max_distance_cm()*0.01*0.2) {
+            if (fabsf(rangefinder_state.last_distance - distance) > rangefinder.max_distance_cm_orient(ROTATION_PITCH_270)*0.01*0.2) {
                 // changes by more than 20% of full range will reset counter
                 rangefinder_state.in_range_count = 0;
             }

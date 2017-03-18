@@ -384,7 +384,7 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
     // @Param: GPS_CHECK
     // @DisplayName: GPS preflight check
     // @Description: This is a 1 byte bitmap controlling which GPS preflight checks are performed. Set to 0 to bypass all checks. Set to 255 perform all checks. Set to 3 to check just the number of satellites and HDoP. Set to 31 for the most rigorous checks that will still allow checks to pass when the copter is moving, eg launch from a boat.
-    // @Bitmask: 0:NSats,1:HDoP,2:speed error,3:horiz pos error,4:yaw error,5:pos drift,6:vert speed,7:horiz speed
+    // @Bitmask: 0:NSats,1:HDoP,2:speed error,3:position error,4:yaw error,5:pos drift,6:vert speed,7:horiz speed
     // @User: Advanced
     AP_GROUPINFO("GPS_CHECK",    32, NavEKF3, _gpsCheck, 31),
 
@@ -583,7 +583,7 @@ void NavEKF3::check_log_write(void)
         logging.log_compass = false;
     }
     if (logging.log_gps) {
-        DataFlash_Class::instance()->Log_Write_GPS(_ahrs->get_gps(), 0, imuSampleTime_us);
+        DataFlash_Class::instance()->Log_Write_GPS(_ahrs->get_gps(), _ahrs->get_gps().primary_sensor(), imuSampleTime_us);
         logging.log_gps = false;
     }
     if (logging.log_baro) {
@@ -659,13 +659,18 @@ bool NavEKF3::InitialiseFilter(void)
     // Set up any cores that have been created
     // This specifies the IMU to be used and creates the data buffers
     // If we are unble to set up a core, return false and try again next time the function is called
+    bool core_setup_success = true;
     for (uint8_t core_index=0; core_index<num_cores; core_index++) {
         if (coreSetupRequired[core_index]) {
             coreSetupRequired[core_index] = !core[core_index].setup_core(this, coreImuIndex[core_index], core_index);
-            if(coreSetupRequired[core_index]) {
-                return false;
+            if (coreSetupRequired[core_index]) {
+                core_setup_success = false;
             }
         }
+    }
+    // exit with failure if any cores could not be setup
+    if (!core_setup_success) {
+        return false;
     }
 
     // Set the primary initially to be the lowest index

@@ -189,8 +189,9 @@ AP_MotorsMulticopter::AP_MotorsMulticopter(uint16_t loop_rate, uint16_t speed_hz
     _batt_voltage_filt.set_cutoff_frequency(AP_MOTORS_BATT_VOLT_FILT_HZ);
     _batt_voltage_filt.reset(1.0f);
 
-    // default throttle ranges (i.e. _throttle_radio_min, _throttle_radio_max)
-    set_throttle_range(1100, 1900);
+    // default throttle range
+    _throttle_radio_min = 1100;
+    _throttle_radio_max = 1900;
 };
 
 // output - sends commands to the motors
@@ -394,10 +395,14 @@ int16_t AP_MotorsMulticopter::get_pwm_output_max() const
 void AP_MotorsMulticopter::set_throttle_range(int16_t radio_min, int16_t radio_max)
 {
     // sanity check
-    if ((radio_max > radio_min)) {
-        _throttle_radio_min = radio_min;
-        _throttle_radio_max = radio_max;
+    if (radio_max <= radio_min) {
+        return;
     }
+
+    _throttle_radio_min = radio_min;
+    _throttle_radio_max = radio_max;
+
+    hal.rcout->set_esc_scaling(get_pwm_output_min(), get_pwm_output_max());
 }
 
 // update the throttle input filter.  should be called at 100hz

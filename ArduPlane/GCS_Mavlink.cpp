@@ -99,13 +99,23 @@ void Plane::send_heartbeat(mavlink_channel_t chan)
 
 void Plane::send_attitude(mavlink_channel_t chan)
 {
+    float r = ahrs.roll;
+    float p = ahrs.pitch - radians(g.pitch_trim_cd*0.01f);
+    float y = ahrs.yaw;
+    
+    if (quadplane.tailsitter_active()) {
+        r = quadplane.ahrs_view->roll;
+        p = quadplane.ahrs_view->pitch;
+        y = quadplane.ahrs_view->yaw;
+    }
+    
     const Vector3f &omega = ahrs.get_gyro();
     mavlink_msg_attitude_send(
         chan,
         millis(),
-        ahrs.roll,
-        ahrs.pitch - radians(g.pitch_trim_cd*0.01f),
-        ahrs.yaw,
+        r,
+        p,
+        y,
         omega.x,
         omega.y,
         omega.z);
@@ -299,7 +309,7 @@ void Plane::send_wind(mavlink_channel_t chan)
  */
 void NOINLINE Plane::send_rpm(mavlink_channel_t chan)
 {
-    if (rpm_sensor.healthy(0) || rpm_sensor.healthy(1)) {
+    if (rpm_sensor.enabled(0) || rpm_sensor.enabled(1)) {
         mavlink_msg_rpm_send(
             chan,
             rpm_sensor.get_rpm(0),
@@ -378,18 +388,33 @@ void Plane::send_pid_tuning(mavlink_channel_t chan)
             return;
         }
     }
+    if ((g.gcs_pid_mask & 0x10) && (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND)) {
+        pid_info = landing.get_pid_info();
+        if (pid_info != nullptr) {
+            mavlink_msg_pid_tuning_send(chan, PID_TUNING_LANDING,
+                                        pid_info->desired,
+                                        gyro.z,
+                                        pid_info->FF,
+                                        pid_info->P,
+                                        pid_info->I,
+                                        pid_info->D);
+        }
+        if (!HAVE_PAYLOAD_SPACE(chan, PID_TUNING)) {
+            return;
+        }
+    }
 }
 
 void Plane::send_rangefinder(mavlink_channel_t chan)
 {
-    if (!rangefinder.has_data()) {
+    if (!rangefinder.has_data_orient(ROTATION_PITCH_270)) {
         // no sonar to report
         return;
     }
     mavlink_msg_rangefinder_send(
         chan,
-        rangefinder.distance_cm() * 0.01f,
-        rangefinder.voltage_mv()*0.001f);
+        rangefinder.distance_cm_orient(ROTATION_PITCH_270) * 0.01f,
+        rangefinder.voltage_mv_orient(ROTATION_PITCH_270) * 0.001f);
 }
 
 void Plane::send_current_waypoint(mavlink_channel_t chan)

@@ -1743,14 +1743,9 @@ bool AP_Param::parse_param_line(char *line, char **vname, float &value)
     return true;
 }
 
-/*
-  load a default set of parameters from a file
- */
-bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
+// increments num_defaults for each default found in filename
+bool AP_Param::count_defaults_in_file(const char *filename, uint16_t &num_defaults, bool panic_on_error)
 {
-    if (filename == nullptr) {
-        return false;
-    }
     FILE *f = fopen(filename, "r");
     if (f == nullptr) {
         return false;
@@ -1760,7 +1755,6 @@ bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
     /*
       work out how many parameter default structures to allocate
      */
-    uint16_t num_defaults = 0;
     while (fgets(line, sizeof(line)-1, f)) {
         char *pname;
         float value;
@@ -1782,27 +1776,19 @@ bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
     }
     fclose(f);
 
-    if (param_overrides != nullptr) {
-        free(param_overrides);
-    }
-    num_param_overrides = 0;
+    return true;
+}
 
-    param_overrides = new param_override[num_defaults];
-    if (param_overrides == nullptr) {
-        AP_HAL::panic("AP_Param: Failed to allocate overrides");
-        return false;
-    }
-
-    /* 
-       re-open to avoid possible seek issues with NuttX
-     */
-    f = fopen(filename, "r");
+bool AP_Param::read_param_defaults_file(const char *filename)
+{
+    FILE *f = fopen(filename, "r");
     if (f == nullptr) {
         AP_HAL::panic("AP_Param: Failed to re-open defaults file");
         return false;
     }
 
     uint16_t idx = 0;
+    char line[100];
     while (fgets(line, sizeof(line)-1, f)) {
         char *pname;
         float value;
@@ -1822,6 +1808,60 @@ bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
         }
     }
     fclose(f);
+    return true;
+}
+
+/*
+  load a default set of parameters from a file
+ */
+bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
+{
+    if (filename == nullptr) {
+        return false;
+    }
+
+    char *mutable_filename = strdup(filename);
+    if (mutable_filename == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to allocate mutable string");
+    }
+
+    uint16_t num_defaults = 0;
+    char *saveptr = nullptr;
+    for (char *pname = strtok_r(mutable_filename, ",", &saveptr);
+         pname != nullptr;
+         pname = strtok_r(nullptr, ",", &saveptr)) {
+        if (!count_defaults_in_file(pname, num_defaults, panic_on_error)) {
+            free(mutable_filename);
+            return false;
+        }
+    }
+    free(mutable_filename);
+
+    if (param_overrides != nullptr) {
+        free(param_overrides);
+    }
+    num_param_overrides = 0;
+
+    param_overrides = new param_override[num_defaults];
+    if (param_overrides == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to allocate overrides");
+        return false;
+    }
+
+    saveptr = nullptr;
+    mutable_filename = strdup(filename);
+    if (mutable_filename == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to allocate mutable string");
+    }
+    for (char *pname = strtok_r(mutable_filename, ",", &saveptr);
+         pname != nullptr;
+         pname = strtok_r(nullptr, ",", &saveptr)) {
+        if (!read_param_defaults_file(pname)) {
+            free(mutable_filename);
+            return false;
+        }
+    }
+    free(mutable_filename);
 
     num_param_overrides = num_defaults;
 

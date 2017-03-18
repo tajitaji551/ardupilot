@@ -226,7 +226,7 @@ void Plane::stabilize_yaw(float speed_scaler)
         // are below the GROUND_STEER_ALT
         steering_control.ground_steering = (channel_roll->get_control_in() == 0 && 
                                             fabsf(relative_altitude) < g.ground_steer_alt);
-        if (landing.is_on_approach()) {
+        if (!landing.is_ground_steering_allowed()) {
             // don't use ground steering on landing approach
             steering_control.ground_steering = false;
         }
@@ -671,6 +671,11 @@ void Plane::update_load_factor(void)
         // no roll limits when inverted
         return;
     }
+    if (quadplane.tailsitter_active()) {
+        // no limits while hovering
+        return;
+    }
+       
 
     float max_load_factor = smoothed_airspeed / aparm.airspeed_min;
     if (max_load_factor <= 1) {
