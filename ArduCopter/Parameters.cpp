@@ -1006,10 +1006,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 
 	// @Param: SHAKE_NEXTMODE
 	// @DisplayName: Shake mode's follow up mode
-	// @Description: Vehicle will switch to this mode after the throw is successfully completed.  Default is to stay in throw mode (18)
-	// @Values: 3:Auto,4:Guided,6:RTL,9:Land,17:Brake,18:Throw
+	// @Description: Vehicle will switch to this mode after the shake is successfully completed.  Default is to stay in shake mode (18)
+	// @Values: 3:Auto,4:Guided,6:RTL,9:Land,17:Brake,21:Shake
 	// @User: Standard
-	AP_GROUPINFO("SHAKE_NEXTMODE", 18, ParametersG2, shake_nextmode, 16),
+	AP_GROUPINFO("SHAKE_NEXTMODE", 18, ParametersG2, shake_nextmode, 21),
     
     AP_GROUPEND
 };

@@ -86,14 +86,13 @@ void Copter::shake_run()
 		set_auto_armed(true);
     } else if (shake_state.stage == Shake_PosHold && pos_control->get_horizontal_error() < 50.0f) {
         if (!shake_state.nextmode_attempted) {
-            set_mode(BRAKE, MODE_REASON_SHAKE_COMPLETE);
             switch (g2.shake_nextmode) {
                 case AUTO:
                 case GUIDED:
                 case RTL:
                 case LAND:
                 case BRAKE:
-                    set_mode((control_mode_t)g2.throw_nextmode.get(), MODE_REASON_THROW_COMPLETE);
+                    set_mode((control_mode_t)g2.shake_nextmode.get(), MODE_REASON_SHAKE_COMPLETE);
                     break;
                 default:
                     // do nothing
