@@ -748,6 +748,31 @@ void Copter::Log_Write_Throw(ThrowModeStage stage, float velocity, float velocit
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
+struct PACKED log_Shake {
+   LOG_PACKET_HEADER;
+   uint64_t time_us;
+   uint8_t stage;
+   float velocity;
+   uint8_t armed;
+   uint32_t wait;
+   uint32_t detectedCount;
+};
+
+// Write a Shake mode details
+void Copter::Log_Write_Shake(ShakeModeStage stage, float velocity, bool armed, uint32_t wait, uint32_t detectedCount)
+{
+	struct log_Shake pkt = {
+	        LOG_PACKET_HEADER_INIT(LOG_SHAKE_MSG),
+	        time_us         : AP_HAL::micros64(),
+	        stage           : (uint8_t)stage,
+	        velocity        : velocity,
+			armed           : armed,
+			wait            : wait,
+			detectedCount   : detectedCount
+	};
+	DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
 // proximity sensor logging
 struct PACKED log_Proximity {
     LOG_PACKET_HEADER;
@@ -896,6 +921,8 @@ const struct LogStructure Copter::log_structure[] = {
       "PRX",   "QBffffffffff","TimeUS,Health,D0,D45,D90,D135,D180,D225,D270,D315,CAng,CDist" },
     { LOG_BEACON_MSG, sizeof(log_Beacon),
       "BCN",   "QBBfffffff",  "TimeUS,Health,Cnt,D0,D1,D2,D3,PosX,PosY,PosZ" },
+    { LOG_SHAKE_MSG, sizeof(log_Shake),
+	  "SHAK",  "QBfbII",  "TimeUS,Stage,Vel,Armed,Wcount,Dcount" },
 };
 
 #if CLI_ENABLED == ENABLED

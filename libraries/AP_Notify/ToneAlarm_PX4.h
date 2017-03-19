@@ -59,6 +59,7 @@ private:
         uint8_t vehicle_lost          : 1;    // 1 if lost copter tone requested
         uint8_t compass_cal_running   : 1;    // 1 if compass calibration is running
         uint8_t waiting_for_throw     : 1;    // 1 if waiting for copter throw launch
+        uint8_t waiting_for_shake     : 1;    // 1 if waiting for copter shake launch
     } flags;
 
     int8_t _cont_tone_playing;

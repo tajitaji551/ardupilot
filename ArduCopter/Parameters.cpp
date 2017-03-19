@@ -876,6 +876,13 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Standard
     GSCALAR(throw_motor_start, "THROW_MOT_START", 0),
 
+    // @Param: SHAKE_MOT_START
+    // @DisplayName: Start motors before shaking is detected
+    // @Description: Used by SHAKE mode.
+    // @Values: 0:Stopped,1:Running
+    // @User: Standard
+    GSCALAR(shake_motor_start, "SHAKE_MOT_START", 1),
+
     // @Param: TERRAIN_FOLLOW
     // @DisplayName: Terrain Following use control
     // @Description: This enables terrain following for RTL and LAND flight modes. To use this option TERRAIN_ENABLE must be 1 and the GCS must  support sending terrain data to the aircraft.  In RTL the RTL_ALT will be considered a height above the terrain.  In LAND mode the vehicle will slow to LAND_SPEED 10m above terrain (instead of 10m above home).  This parameter does not affect AUTO and Guided which use a per-command flag to determine if the height is above-home, absolute or above-terrain.
@@ -996,6 +1003,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Group: RC
     // @Path: ../libraries/RC_Channel/RC_Channels.cpp
     AP_SUBGROUPINFO(rc_channels, "RC", 17, ParametersG2, RC_Channels),
+
+	// @Param: SHAKE_NEXTMODE
+	// @DisplayName: Shake mode's follow up mode
+	// @Description: Vehicle will switch to this mode after the throw is successfully completed.  Default is to stay in throw mode (18)
+	// @Values: 3:Auto,4:Guided,6:RTL,9:Land,17:Brake,18:Throw
+	// @User: Standard
+	AP_GROUPINFO("SHAKE_NEXTMODE", 18, ParametersG2, shake_nextmode, 16),
     
     AP_GROUPEND
 };

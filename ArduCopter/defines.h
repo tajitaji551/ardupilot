@@ -103,6 +103,7 @@ enum control_mode_t {
     THROW =        18,  // throw to launch mode using inertial/GPS system, no pilot input
     AVOID_ADSB =   19,  // automatic avoidance of obstacles in the macro scale - e.g. full-sized aircraft
     GUIDED_NOGPS = 20,  // guided mode but only accepts attitude and altitude
+	SHAKE =        21,
 };
 
 enum mode_reason_t {
@@ -123,6 +124,7 @@ enum mode_reason_t {
     MODE_REASON_AVOIDANCE,
     MODE_REASON_AVOIDANCE_RECOVERY,
     MODE_REASON_THROW_COMPLETE,
+	MODE_REASON_SHAKE_COMPLETE,
 };
 
 // Tuning enumeration
@@ -268,6 +270,16 @@ enum ThrowModeType {
     ThrowType_Drop = 1
 };
 
+// Shake stages
+enum ShakeModeStage {
+	Shake_Disarmed,
+	Shake_Detecting_1,
+	Shake_Armed,
+	Shake_Detecting_2,
+	Shake_HgtStabilize,
+	Shake_PosHold
+};
+
 enum LandStateType {
     LandStateType_FlyToLocation = 0,
     LandStateType_Descending = 1
@@ -319,6 +331,7 @@ enum DevOptions {
 #define LOG_THROW_MSG                   0x23
 #define LOG_PROXIMITY_MSG               0x24
 #define LOG_BEACON_MSG                  0x25
+#define LOG_SHAKE_MSG                   0x26
 
 #define MASK_LOG_ATTITUDE_FAST          (1<<0)
 #define MASK_LOG_ATTITUDE_MED           (1<<1)

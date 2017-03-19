@@ -87,6 +87,8 @@ const ToneAlarm_PX4::Tone ToneAlarm_PX4::_tones[] {
     { "MFT100L10DBDB>", false},
     #define AP_NOTIFY_PX4_TONE_TUNING_ERROR 25
     { "MFT100L10>BBBBBBBB", false},
+	#define AP_NOTIFY_PX4_TONE_WAITING_FOR_SHAKE 26
+	{ "MBT150L2O5BBBL6>DD", true},
 };
 
 bool ToneAlarm_PX4::init()
@@ -312,6 +314,16 @@ void ToneAlarm_PX4::update()
         flags.waiting_for_throw = AP_Notify::flags.waiting_for_throw;
         if (flags.waiting_for_throw) {
             play_tone(AP_NOTIFY_PX4_TONE_WAITING_FOR_THROW);
+        } else {
+            stop_cont_tone();
+        }
+    }
+
+    // waiting to be thrown vehicle tone
+    if (flags.waiting_for_shake != AP_Notify::flags.waiting_for_shake) {
+        flags.waiting_for_shake = AP_Notify::flags.waiting_for_shake;
+        if (flags.waiting_for_shake) {
+            play_tone(AP_NOTIFY_PX4_TONE_WAITING_FOR_SHAKE);
         } else {
             stop_cont_tone();
         }

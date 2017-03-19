@@ -24,6 +24,14 @@ bool Copter::set_mode(control_mode_t mode, mode_reason_t reason)
         return true;
     }
 
+    // diable notify alerm when don't set to Throw and Shake
+    if (mode != THROW) {
+    	AP_Notify::flags.waiting_for_throw = false;
+    }
+    if (mode != SHAKE) {
+    	AP_Notify::flags.waiting_for_shake = false;
+    }
+
     switch (mode) {
         case ACRO:
             #if FRAME_CONFIG == HELI_FRAME
@@ -108,6 +116,10 @@ bool Copter::set_mode(control_mode_t mode, mode_reason_t reason)
         case GUIDED_NOGPS:
             success = guided_nogps_init(ignore_checks);
             break;
+
+        case SHAKE:
+        	success = shake_init(ignore_checks);
+        	break;
 
         default:
             success = false;
@@ -245,6 +257,10 @@ void Copter::update_flight_mode()
         case GUIDED_NOGPS:
             guided_nogps_run();
             break;
+
+        case SHAKE:
+        	shake_run();
+        	break;
 
         default:
             break;
@@ -485,6 +501,9 @@ void Copter::print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
     case GUIDED_NOGPS:
         port->printf("GUIDED_NOGPS");
         break;
+    case SHAKE:
+    	port->printf("SHAKE");
+    	break;
     default:
         port->printf("Mode(%u)", (unsigned)mode);
         break;

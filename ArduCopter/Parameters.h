@@ -197,6 +197,8 @@ public:
         k_param_pos_control,
         k_param_circle_nav,     // 104
 
+		k_param_shake_motor_start = 106,
+
         // 110: Telemetry control
         //
         k_param_gcs0 = 110,
@@ -369,6 +371,7 @@ public:
 
         // the k_param_* space is 9-bits in size
         // 511: reserved
+
     };
 
     AP_Int16        format_version;
@@ -458,6 +461,7 @@ public:
     AP_Int16        gcs_pid_mask;
 
     AP_Int8         throw_motor_start;
+    AP_Int8         shake_motor_start;
     AP_Int8         terrain_follow;
 
     AP_Int16                rc_speed; // speed of fast RC Channels in Hz
@@ -529,6 +533,9 @@ public:
     // Throw mode parameters
     AP_Int8 throw_nextmode;
     AP_Int8 throw_type;
+
+    // Shake mode parameters
+    AP_Int8 shake_nextmode;
 
     // ground effect compensation enable/disable
     AP_Int8 gndeffect_comp_enabled;

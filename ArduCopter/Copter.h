@@ -430,6 +430,21 @@ private:
         float free_fall_start_velz;     // vertical velocity when free fall was detected
     } throw_state = {Throw_Disarmed, Throw_Disarmed, 0, false, 0, 0.0f};
 
+    struct {
+		ShakeModeStage stage;
+		ShakeModeStage prev_stage;
+		uint32_t last_stage_changed_ms;
+		uint32_t last_log_ms;
+		bool nextmode_attempted;
+	} shake_state = {Shake_Disarmed, Shake_Disarmed, 0, 0, false};
+
+	// shake detection
+	struct {
+		uint32_t shake_detected_count;
+		//uint32_t shake_interval_count;
+		uint32_t shake_wait_count;
+	} shake_detection;
+
     // Battery Sensors
     AP_BattMonitor battery;
 
@@ -726,6 +741,7 @@ private:
     void Log_Write_Precland();
     void Log_Write_GuidedTarget(uint8_t target_type, const Vector3f& pos_target, const Vector3f& vel_target);
     void Log_Write_Throw(ThrowModeStage stage, float velocity, float velocity_z, float accel, float ef_accel_z, bool throw_detect, bool attitude_ok, bool height_ok, bool position_ok);
+    void Log_Write_Shake(ShakeModeStage stage, float velocity, bool armed, uint32_t wait, uint32_t detectedCount);
     void Log_Write_Proximity();
     void Log_Write_Beacon();
     void Log_Write_Vehicle_Startup_Messages();
@@ -895,6 +911,10 @@ private:
     bool throw_attitude_good();
     bool throw_height_good();
     bool throw_position_good();
+
+    // Shake to launch functionality
+    bool shake_init(bool ignore_checks);
+    void shake_run();
 
     bool rtl_init(bool ignore_checks);
     void rtl_restart_without_terrain();
