@@ -276,6 +276,7 @@ enum ShakeModeStage {
 	Shake_Detecting_1,
 	Shake_Armed,
 	Shake_Detecting_2,
+	Shake_Uprighting,
 	Shake_HgtStabilize,
 	Shake_PosHold
 };

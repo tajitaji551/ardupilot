@@ -329,6 +329,7 @@ bool Copter::mode_requires_GPS(control_mode_t mode)
         case BRAKE:
         case AVOID_ADSB:
         case THROW:
+        case SHAKE:
             return true;
         default:
             return false;
@@ -433,8 +434,11 @@ void Copter::notify_flight_mode(control_mode_t mode)
             notify.set_flight_mode_str("AVOI");
             break;
         case GUIDED_NOGPS:
-            notify.set_flight_mode_str("GNGP");
+        	notify.set_flight_mode_str("GNGP");
             break;
+        case SHAKE:
+        	notify.set_flight_mode_str("SHAK");
+        	break;
         default:
             notify.set_flight_mode_str("----");
             break;

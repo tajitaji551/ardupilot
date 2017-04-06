@@ -441,7 +441,8 @@ private:
 	// shake detection
 	struct {
 		uint32_t shake_detected_count;
-		//uint32_t shake_interval_count;
+		uint32_t shake_throw_step;
+		uint32_t shake_throw_began;
 		uint32_t shake_wait_count;
 	} shake_detection;
 
@@ -915,6 +916,9 @@ private:
     // Shake to launch functionality
     bool shake_init(bool ignore_checks);
     void shake_run();
+    bool shake_detected();
+    bool shakethrow_detected();
+    bool shake_attitude_good();
 
     bool rtl_init(bool ignore_checks);
     void rtl_restart_without_terrain();

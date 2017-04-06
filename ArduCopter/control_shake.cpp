@@ -1,6 +1,8 @@
 #include "Copter.h"
 #define SHAKE_WAIT_COUNT 2000 // 5000ms
-#define SHAKE_THRESHOLD 95 // threshold
+// TODO too low??
+#define SHAKE_THRESHOLD 200 // threshold
+#define SHAKE_THROW_SPEED 250 // throw
 
 // shake_init - initialise shake controller
 bool Copter::shake_init(bool ignore_checks)
@@ -31,7 +33,6 @@ bool Copter::shake_init(bool ignore_checks)
 // should be called at 100hz or more
 void Copter::shake_run()
 {
-	float velocityLen = inertial_nav.get_velocity().length();
     /* Shake state Machine
     Shake_Disarmed - motors are off
     Shake_Detecting_1 - the shake has been detected and copter was armed
@@ -43,31 +44,33 @@ void Copter::shake_run()
     According above state machine, ShakeMode have to shake twice.
     */
     if ((shake_state.stage == Shake_Detecting_1 || shake_state.stage == Shake_Detecting_2)
-        && velocityLen > SHAKE_THRESHOLD) {
+        && shake_detected()) {
     	shake_detection.shake_detected_count++;
     }
     uint32_t now = AP_HAL::millis();
     if (shake_state.stage == Shake_Disarmed && !motors->armed() && !motors->get_interlock()) {
         gcs_send_text(MAV_SEVERITY_INFO,"waiting for shake1");
         shake_state.stage = Shake_Detecting_1;
-    } else if (shake_state.stage == Shake_Detecting_1 && shake_detection.shake_detected_count > SHAKE_THRESHOLD) {
+    } else if (shake_state.stage == Shake_Detecting_1 && shake_detected()) {
         gcs_send_text(MAV_SEVERITY_INFO,"shake1 detected - motor armed");
         shake_state.stage = Shake_Armed;
         shake_detection.shake_detected_count = 0;
         shake_detection.shake_wait_count = SHAKE_WAIT_COUNT;
-    } else if (shake_state.stage == Shake_Armed && motors->armed()) {
+    } else if (shake_state.stage == Shake_Armed && motors->armed()
+    		&& (now - shake_state.last_stage_changed_ms) > 200) { // wait 200ms after motor armed.
         gcs_send_text(MAV_SEVERITY_INFO,"waiting for shake2");
         shake_state.stage = Shake_Detecting_2;
-    } else if (shake_state.stage == Shake_Detecting_2 && shake_detection.shake_detected_count > SHAKE_THRESHOLD) {
+    } else if (shake_state.stage == Shake_Detecting_2 && shakethrow_detected()) {
         gcs_send_text(MAV_SEVERITY_INFO,"shake2 detected - controlling height");
-        shake_state.stage = Shake_HgtStabilize;
-
+        shake_state.stage = Shake_Uprighting;
+    } else if (shake_state.stage == Shake_Uprighting && shake_attitude_good()) {
+    	shake_state.stage = Shake_HgtStabilize;
         // initialize vertical speed and acceleration limits
 		// use brake mode values for rapid response
 		pos_control->set_speed_z(BRAKE_MODE_SPEED_Z, BRAKE_MODE_SPEED_Z);
 		pos_control->set_accel_z(BRAKE_MODE_DECEL_RATE);
 
-		pos_control->set_alt_target(inertial_nav.get_altitude() + 150);
+		pos_control->set_alt_target(inertial_nav.get_altitude() + 100);
 
 		// set the initial velocity of the height controller demand to the measured velocity if it is going up
 		// if it is going down, set it to zero to enforce a very hard stop
@@ -106,7 +109,14 @@ void Copter::shake_run()
 	if (shake_detection.shake_wait_count <= 0) {
 		shake_detection.shake_wait_count = SHAKE_WAIT_COUNT;
 		shake_detection.shake_detected_count = 0;
+		shake_detection.shake_throw_step = 0;
 		shake_state.stage = Shake_Disarmed;
+	}
+
+	// last stage change time
+	if (shake_state.prev_stage != shake_state.stage) {
+		shake_state.last_stage_changed_ms = AP_HAL::millis();
+		shake_state.prev_stage = shake_state.stage;
 	}
 
     // Shake stage processing
@@ -120,10 +130,6 @@ void Copter::shake_run()
         // demand zero throttle (motors will be stopped anyway) and continually reset the attitude controller
 		attitude_control->set_throttle_out_unstabilized(0,true,g.throttle_filt);
         break;
-    case Shake_Detecting_2:
-        // Hold throttle at zero during the shake and continually reset the attitude controller
-        attitude_control->set_throttle_out_unstabilized(0,true,g.throttle_filt);
-        break;
     case Shake_Armed:
     	// set motors to full range
         motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
@@ -134,6 +140,20 @@ void Copter::shake_run()
             motors->set_desired_spool_state(AP_Motors::DESIRED_SHUT_DOWN);
         }
     	motors->armed(true);
+        break;
+    case Shake_Detecting_2:
+        // do nothing on this stage.
+        break;
+    case Shake_Uprighting:
+        // set motors to full range
+        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+
+        // demand a level roll/pitch attitude with zero yaw rate
+        attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(0.0f, 0.0f, 0.0f, get_smoothing_gain());
+
+        // output 50% throttle and turn off angle boost to maximise righting moment
+        attitude_control->set_throttle_out(0.5f, false, g.throttle_filt);
+
         break;
     case Shake_HgtStabilize:
         // set motors to full range
@@ -147,7 +167,6 @@ void Copter::shake_run()
         pos_control->update_z_controller();
 
         break;
-
     case Shake_PosHold:
 
         // set motors to full range
@@ -182,9 +201,48 @@ void Copter::shake_run()
         uint32_t wcount = shake_detection.shake_wait_count;
         uint32_t dcount = shake_detection.shake_detected_count;
         Log_Write_Shake(shake_state.stage,
-                        velocityLen,
+        				ahrs.get_accel_ef().z,
                         motors->armed(),
                         wcount,
-                        dcount);
+						inertial_nav.get_velocity().length());
     }
+}
+
+bool Copter::shake_attitude_good()
+{
+    // Check that we have uprighted the copter
+    const Matrix3f &rotMat = ahrs.get_rotation_body_to_ned();
+    return (rotMat.c.z > 0.866f); // is_upright
+}
+
+bool Copter::shake_detected() {
+	return inertial_nav.get_velocity_z() > SHAKE_THRESHOLD
+			&& ahrs.get_accel_ef().z > 0.6 * GRAVITY_MSS;
+}
+
+bool Copter::shakethrow_detected() {
+	// Current speed vector
+	float current_speed = inertial_nav.get_velocity().length();
+	// Current vertical acceleration
+	float current_z_accel = ahrs.get_accel_ef().z;
+
+	// First: go down
+	if (current_z_accel <= (-0.2 * GRAVITY_MSS) && current_speed > SHAKE_THROW_SPEED) {
+		shake_detection.shake_throw_step = 1;
+		shake_detection.shake_throw_began = AP_HAL::millis();
+	}
+	// Second: go up
+	else if (shake_detection.shake_throw_step == 1
+			&& current_z_accel >= (0.15 * GRAVITY_MSS) && current_speed > SHAKE_THROW_SPEED) {
+		shake_detection.shake_throw_step = 2;
+	}
+	// Final: on the top
+	else if (shake_detection.shake_throw_step == 2
+			&& current_speed < (SHAKE_THROW_SPEED / 2)) {
+		shake_detection.shake_throw_step = 3;
+	}
+
+	// Throw procesure should be completed within one second
+	return shake_detection.shake_throw_step == 3
+			&& (AP_HAL::millis() - shake_detection.shake_throw_began) <= 1000;
 }
